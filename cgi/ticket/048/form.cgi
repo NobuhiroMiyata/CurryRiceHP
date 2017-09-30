@@ -44,39 +44,40 @@ $year=$year+1900;$mon ++;
 	$cnt = -1;
 	foreach $line ( @LIST ) {
 		$cnt++;
-		( $file,$seki,$mai ) = split( /,/,$line );
-		if ( length( $file ) >= 12 ) {
-			$yy = substr( $file,0,4 );
-			$mm = substr( $file,4,2 );
-			$dd = substr( $file,6,2 );
-			$hh = substr( $file,8,2 );
-			$ff = substr( $file,10,2 );
-			$date = "$yy年$mm月$dd日\t$hh時$ff分開演\t$seki";
+		#CSVから先の値を取得(公演日、金額、残渣席数、キャパ、現在予約数)
+		( $ymdhm, $yen, $zanseki, $M_seki, $yoyakusu) = split( /,/,$line );
+		if ( length( $ymdhm ) >= 12 ) {
+			$yy = substr( $ymdhm,0,4 );
+			$mm = substr( $ymdhm,4,2 );
+			$dd = substr( $ymdhm,6,2 );
+			$hh = substr( $ymdhm,8,2 );
+			$ff = substr( $ymdhm,10,2 );
+			$date = "$yy年$mm月$dd日\t$hh時$ff分開演\t$yen";
 		} else { $date = "不明"; }
 
-if ( $year >= $yy && $mon > $mm ) {
-print "<font color=red><b>×</b></font><b>$date</b>\t\t<font color=red>受付終了</font>\n";
-}elsif( $year >= $yy && $mon >= $mm && $mday > $dd ) {
-print "<font color=red><b>×</b></font><b>$date</b>\t\t<font color=red>受付終了</font>\n";
-}elsif( $year >= $yy && $mon >= $mm && $mday >= $dd && $hour >= $hh-$end ) {
-print "<font color=red><b>×</b></font><b>$date</b>\t\t<font color=red>受付終了</font>\n";
-}else{
-if ( $mai <= 0 ) {
-	print "<font color=red><b>×</b></font>\n";
+		if ( $year >= $yy && $mon > $mm ) {
+			print "<font color=red><b>×</b></font><b>$date</b>\t\t<font color=red>受付終了</font>\n";
+		}elsif( $year >= $yy && $mon >= $mm && $mday > $dd ) {
+			print "<font color=red><b>×</b></font><b>$date</b>\t\t<font color=red>受付終了</font>\n";
+		}elsif( $year >= $yy && $mon >= $mm && $mday >= $dd && $hour >= $hh-$end ) {
+			print "<font color=red><b>×</b></font><b>$date</b>\t\t<font color=red>受付終了</font>\n";
 		}else{
-	print "<input type=radio name=day value=$yy$mm$dd$hh$ff checked>\n";
-	print "<input type=hidden name=\"$yy$mm$dd$hh$ff\" value=\"$mai\">\n";
-		}
+			if ( $zanseki <= 0 ) {
+				print "<font color=red><b>×</b></font>\n";
+			}else{
+				print "<input type=radio name=\"day\" value=\"$yy$mm$dd$hh$ff\">\n";
+				print "<input type=hidden name=\"$yy$mm$dd$hh$ff\" value=\"$zanseki\">\n";
+			}
 			print "<b>$date</b>\n";
 
-if ( $mai <= $zan && $mai >= 1 ) {
-	print "\t\t<font color=red>残り$mai枚</font>\n";
+			if ( $zanseki <= $zan && $zanseki >= 1 ) {
+				print "\t\t<font color=red>残り$zanseki枚</font>\n";
+			}
+			if ( $zanseki <= 0 ) {
+				print "\t\t<font color=red>販売終了</font>\n";
+			}
 		}
-if ( $mai <= 0 ) {
-	print "\t\t<font color=red>販売終了</font>\n";
-		}
-}
-			print "<br>\n";
+		print "<br>\n";
 
 	}
 }

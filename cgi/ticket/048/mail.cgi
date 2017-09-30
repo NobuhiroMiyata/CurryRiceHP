@@ -14,6 +14,12 @@ require "cfg.cgi";
 @wday_array = ('日','月','火','水','木','金','土');
 $date_now = sprintf("%02d\/%01d\/%01d(%s)%02d\:%02d",$year +1900,$mon +1,$mday,$wday_array[$wday],$hour,$min,$sec);
 
+#グローバル変数定義
+#座席残数
+$g_zanseki;
+#予約数
+$g_yoyakusu;
+
 print "Content-type: text/html\n\n";
 
 if ( $ENV{'REQUEST_METHOD'} eq 'POST' ) {
@@ -36,9 +42,6 @@ if ( $input ne '' ) {
 }
 		$DATE = substr( $FORM{'day'},0,12 );
 
-		$seki2= substr($FORM{'day'},11,1 );
-		$seki2='￥500';
-
 ## エラーチェック
 if ( $FORM{'day'} eq '' ) {
 	push ( @error, '日時を選択してください。');
@@ -46,6 +49,7 @@ if ( $FORM{'day'} eq '' ) {
 if ( $FORM{'mai'} eq '' ) {
 	push ( @error, '枚数を入力してください。');
 }
+#$tmp1 = "$DATE" . "_zanseki";
 if ( $FORM{$DATE} < $FORM{'mai'}) {
 	push ( @error, '枚数が残数を超えています。');
 }
@@ -65,7 +69,6 @@ if ( $FORM{'tel'} eq '' ) {
 	push ( @error, '連絡用電話番号を入力してください。');
 }
 
-
 ## エラーがなかったとき
 if ( ! @error ) {
 
@@ -84,16 +87,20 @@ if ( ! @error ) {
 
 sub regist{
 
+	$DATE = substr( $FORM{'day'},0,12 );
+
 	# CSVデータ作成
 	$csvdata = '"' .
-		   $date_now		. '","' .
-		   $date	. '","' .
-		   $FORM{'mai'}	. '","' .
+		   $date_now			. '","' .
+		   $date					. '","' .
+		   $FORM{'mai'}		. '","' .
 		   $FORM{'name'}	. '","' .
 		   $FORM{'email'}	. '","' .
 		   $FORM{'tel'}		. '","' .
-		   $FORM{'biko'}		. '"' .
-
+#		   $FORM{'biko'}		. '"' .
+		   $FORM{'biko'}	. '","' .
+			 "$g_yoyakusu"	. '","' .
+			 "0"						.	'"' .
 		   "\n";
 
 
@@ -214,36 +221,58 @@ E-MAIL	: $FORM{'email'}<br>
 }
 	#チケット枚数処理
 sub ticket{
+		#ロック処理(オン)
 		$KEY = &Com::lockon("$FILEDIR/$LOCKFILE");
 		if ( $KEY != 9 ) {
 			$html_message = "大変混み合っています。しばらく待ってから再度お試しください。";
 			&HTML;
 		}
 		&Com::GetList( "$FILEDIR/$LSTFILE",$SORTFLG,*LIST,*MSG );
+		#フラグの初期化
 		$flg = 'NG';
+
+		#更新対象レコードの検索
 		foreach $line ( @LIST ) {
-			( $file,$seki,$mai ) = split( /,/,$line );
-			if ( $file eq $DATE ) { $flg = 'OK'; next; }
+			#day.datから更新対象のレコードを探索する。CSVを分解(公演日、金額、残座席数、キャパ、現在予約数)
+			( $ymdhm, $yen, $zanseki, $M_seki, $yoyakusu) = split( /,/,$line );
+			#更新対象レコードが見つかったら、残座席数を減算、現在予約数を加算する。
+			if ( $ymdhm eq $DATE ) {
+				$flg = 'OK';
+				#残席数の計算
+				$g_zanseki = $zanseki - $FORM{'mai'};
+				#予約数をインクリメント
+				$g_yoyakusu = ++$yoyakusu;
+				next;
+			}
+			#更新対象外のレコードを配列に書き出す
 			push( @OUTLIST,$line );
 		}
-			if ( $flg eq 'NG' ) {
-			$html_message = "対象が見つかりません。";
-				&Com::lockoff("$FILEDIR/$LOCKFILE",$KEY);
-				&HTML;
-			}
-			foreach $line ( @OUTLIST ) {
-				( $file,$seki,$mai ) = split( /,/,$line );
-				if ( $file eq $DATE ) { last;}
-			}
-			if ( $file eq $DATE ) {
-				$MSG = "対象が既にあります。";
-				&Com::lockoff("$FILEDIR/$LOCKFILE",$KEY);
-				&HTML;
-			}
-			$MAI = $FORM{$DATE}-$FORM{'mai'};
-			$line = "$DATE,$seki2,$MAI";
-			push( @OUTLIST,$line );
 
+		#NGの場合(更新対象レコードが存在しない場合)処理終了
+		if ( $flg eq 'NG' ) {
+				$html_message = "対象が見つかりません。";
+				&Com::lockoff("$FILEDIR/$LOCKFILE",$KEY);
+				&HTML;
+		}
+
+		#＠OUTLISTに更新対象レコードが含まれているか検索
+		foreach $line ( @OUTLIST ) {
+			#( $file,$seki,$mai ) = split( /,/,$line );
+			( $ymdhm, $yen, $zanseki, $M_seki, $yoyakusu) = split( /,/,$line );
+			if ( $ymdhm eq $DATE ) { last; }
+		}
+		#＠OUTLISTに更新対象レコードが含まれている場合処理終了
+		if ( $ymdhm eq $DATE ) {
+			$MSG = "対象が既にあります。";
+			&Com::lockoff("$FILEDIR/$LOCKFILE",$KEY);
+			&HTML;
+		}
+
+		#更新済みデータを＠OUTLIST配列に追加する
+		$line = "$DATE,$yen,$g_zanseki,$M_seki,$g_yoyakusu";
+		push( @OUTLIST,$line );
+
+		#day.datへの書き込み処理
 		if ( open( OUT,">$FILEDIR/$LSTFILE" ) ) {
 			@OUTLIST = sort( @OUTLIST );
 			foreach $line ( @OUTLIST ) { print OUT "$line\n"; }
@@ -254,7 +283,7 @@ sub ticket{
 			&HTML;
 		}
 		&Com::lockoff("$FILEDIR/$LOCKFILE",$KEY);
-	&regist;
+		&regist;
 }
 
 ## HTML表示
