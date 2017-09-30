@@ -21,9 +21,9 @@ $LOCKFILE= 'day.loc';		# ロックファイル※自動生成
 
 # メール設定
 $sendmail = '/usr/sbin/sendmail'; #sendmailのパス プロバイダに確認すること
-$admin_email = 'test_info@gekidan-curryrice.com';	# 管理者メールアドレス
+$admin_email = 'info@gekidan-curryrice.com';	# 管理者メールアドレス
 					# お客様に通知されます。
-$send_email = 'test_uchuzine@gmail.com';	# 上以外の送付先メールアドレス、客への通知なし
+$send_email = 'uchuzine@gmail.com';	# 上以外の送付先メールアドレス、客への通知なし
 					# 複数設定するときはカンマ(,)でくぎる
 
 # 予約データ格納ファイル設定
