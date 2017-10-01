@@ -89,6 +89,7 @@ sub HtmlStart {
 	print "Content-type: text/html\n\n";
 	print "<html><head>\n";
 	print "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=Shift_JIS\">\n";
+	print "<meta name=\"viewport\" content=\"width=450px\">\n";
 	print "<title>$TITLE</title></head>\n";
 	if ( -f $BGGIF ) { print "<body background=\"$BGGIF\" TEXT=\"$FGCOLOR\" LINK=\"$LINK\" VLINK=\"$VLINK\" ALINK=\"$ALINK\">\n"; }
 	else { print "<body bgcolor=\"$BGCOLOR\" TEXT=\"$FGCOLOR\" LINK=\"$LINK\" VLINK=\"$VLINK\" ALINK=\"$ALINK\">\n"; }
@@ -105,6 +106,7 @@ sub HtmlEnd {
 	if ( $MSG ne '' ) {
 		print "</form><br><br><font color=\"#FF0000\" size=+1><b>$MSG</b></font><br><br>\n";
 	}else{
+		print "※今回、高校生以下は￥1,000になります（学生証提示）<br>\n";
 	print "<br>枚数\n";
 	print "<input type=radio name=\"mai\" value=\"1\" checked>1\n";
 	print "<input type=radio name=\"mai\" value=\"2\">2\n";
